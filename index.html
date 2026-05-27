@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Financiero Premium - Fase 3</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #0f1419;
+            --secondary: #1a1a2e;
+            --tertiary: #16213e;
+            --accent-gold: #FFB81C;
+            --accent-blue: #1976D2;
+            --text-light: #e8e8e8;
+            --text-muted: #a8a8a8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--primary);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* WELCOME SCREEN */
+        .screen {
+            width: 100%;
+            min-height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .welcome-screen {
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            font-size: 20px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .welcome-description {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .welcome-cta {
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--accent-gold), #ffca38);
+            color: var(--primary);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .welcome-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 184, 28, 0.3);
+        }
+
+        /* QUESTION SCREEN */
+        .question-screen {
+            flex-direction: column;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        .progress-header {
+            width: 100%;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* GLOBAL PROGRESS BAR */
+        .progress-bar-container {
+            width: 100%;
+            background: var(--secondary);
+            border-radius: 12px;
+            height: 8px;
+            border: 1px solid rgba(255, 184, 28, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-gold), #ffca38);
+            border-radius: 12px;
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 20px rgba(255, 184, 28, 0.5);
+        }
+
+        .progress-bar-fill.milestone-reached {
+            animation: progressPulse 0.6s ease;
+        }
+
+        @keyframes progressPulse {
+            0% { box-shadow: 0 0 20px rgba(255, 184, 28, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 184, 28, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(255, 184, 28, 0.5); }
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .progress-percentage {
+            font-weight: 600;
+            color: var(--accent-gold);
+            font-size: 14px;
+        }
+
+        .questions-counter {
+            font-style: italic;
+        }
+
+        /* MILESTONE BLOCKS */
+        .progress-icons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .milestone-block {
+            flex: 1;
+            height: 50px;
+            border-radius: 8px;
+            background: rgba(255, 184, 28, 0.08);
+            border: 1px solid rgba(255, 184, 28, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .milestone-block.active {
+            border-color: var(--accent-gold);
+            background: rgba(255, 184, 28, 0.15);
+            color: var(--accent-gold);
+        }
+
+        .milestone-block.completed {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .milestone-block::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-gold);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .milestone-block.active::before {
+            width: 100%;
+        }
+
+        .block-label {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .block-emoji {
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+
+        /* CELEBRATION ANIMATION */
+        .celebration {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: celebrationPop 1.2s ease-out forwards;
+        }
+
+        @keyframes celebrationPop {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -150%) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes confettiFall {
+            to {
+                transform: translateY(100vh) rotateZ(720deg);
+                opacity: 0;
+            }
+        }
+
+        .milestone-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--secondary);
+            border: 2px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .milestone-icon.unlocked {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .value-counter {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .capa-badge {
+            display: inline-block;
+            background: rgba(25, 118, 210, 0.2);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 24px;
+        }
+
+        .question-card {
+            background: var(--secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-text {
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            line-height: 1.4;
+        }
+
+        .answers-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .answer-option {
+            padding: 16px 20px;
+            background: rgba(255, 184, 28, 0.05);
+            border: 2px solid rgba(255, 184, 28, 0.2);
+            border-radius: 12px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 15px;
+        }
+
+        .answer-option:hover {
+            border-color: var(--accent-gold);
+            background: rgba(255, 184, 28, 0.1);
+            transform: translateX(8px);
+        }
+
+        .answer-option.selected {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .revelation {
+            background: rgba(25, 118, 210, 0.15);
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 24px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            animation: revealCard 0.6s ease 0.3s forwards;
+        }
+
+        @keyframes revealCard {
+            from {
+                opacity: 0;
+                transform: rotateY(90deg);
+            }
+            to {
+                opacity: 1;
+                transform: rotateY(0);
+            }
+        }
+
+        .revelation-text {
+            font-size: 14px;
+            font-style: italic;
+            color: var(--accent-blue);
+        }
+
+        .microcopy {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--accent-gold);
+            font-weight: 500;
+            min-height: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 12px;
+            background: var(--secondary);
+            border: 1px solid rgba(255, 184, 28, 0.3);
+            color: var(--text-light);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            border-color: var(--accent-gold);
+            background: rgba(255, 184, 28, 0.1);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* PANIC BUTTON */
+        .panic-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF6B6B, #FF4757);
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.4);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .panic-button:hover {
+            transform: scale(1.1);
+        }
+
+        .panic-popup {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: var(--secondary);
+            border: 1px solid #FF6B6B;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 280px;
+            font-size: 14px;
+            display: none;
+            z-index: 101;
+            animation: popIn 0.4s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .panic-popup.active {
+            display: block;
+        }
+
+        .panic-popup-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* IMMERSIVE MODE */
+        .immersive-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--secondary);
+            border: 1px solid rgba(255, 184, 28, 0.3);
+            color: var(--accent-gold);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 50;
+            transition: all 0.3s ease;
+        }
+
+        .immersive-toggle:hover {
+            border-color: var(--accent-gold);
+            background: rgba(255, 184, 28, 0.1);
+        }
+
+        body.immersive-mode {
+            background: #000;
+        }
+
+        body.immersive-mode .progress-header,
+        body.immersive-mode .nav-buttons,
+        body.immersive-mode .panic-button,
+        body.immersive-mode .immersive-toggle {
+            display: none;
+        }
+
+        body.immersive-mode .question-card {
+            border: none;
+            background: transparent;
+            padding: 60px 40px;
+        }
+
+        /* PROCESSING SCREEN */
+        .processing-screen {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 184, 28, 0.2);
+            border-top-color: var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .processing-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .processing-message {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            min-height: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* UNBOXING SCREEN */
+        .unboxing-screen {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .book-animation {
+            width: 200px;
+            height: 260px;
+            background: var(--secondary);
+            border: 2px solid var(--accent-gold);
+            border-radius: 12px;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            animation: floatBook 3s ease-in-out infinite;
+            perspective: 1000px;
+        }
+
+        @keyframes floatBook {
+            0%, 100% {
+                transform: translateY(0) rotateY(0deg);
+            }
+            50% {
+                transform: translateY(-30px) rotateY(15deg);
+            }
+        }
+
+        .unboxing-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .unboxing-subtitle {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            max-width: 500px;
+        }
+
+        .download-btn {
+            padding: 16px 40px;
+            background: linear-gradient(135deg, var(--accent-gold), #ffca38);
+            color: var(--primary);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 184, 28, 0.3);
+        }
+
+        .blur-number {
+            filter: blur(8px);
+            transition: filter 0.3s ease;
+        }
+
+        .blur-number:hover {
+            filter: blur(0);
+        }
+
+        @media (max-width: 600px) {
+            .welcome-title {
+                font-size: 32px;
+            }
+            .question-text {
+                font-size: 20px;
+            }
+            .question-card {
+                padding: 30px 20px;
+            }
+            .panic-button {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+                bottom: 20px;
+                right: 20px;
+            }
+            .immersive-toggle {
+                top: 10px;
+                right: 10px;
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+            .progress-stats {
+                flex-direction: column;
+                gap: 8px;
+                font-size: 12px;
+            }
+            .milestone-block {
+                height: 45px;
+                font-size: 11px;
+            }
+            .block-emoji {
+                font-size: 16px;
+            }
+            .block-label {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- WELCOME SCREEN -->
+    <div class="screen welcome-screen active" id="welcomeScreen">
+        <h1 class="welcome-title">Diagnóstico Financiero Premium</h1>
+        <p class="welcome-subtitle">Tu mapa de fricción económica</p>
+        <p class="welcome-description">
+            100 preguntas estratégicas que mapean dónde pierdes dinero y energía.
+            Diagnóstico rápido, profundo y accionable.
+            Al final, un informe personalizado brutal con tu plan de optimización.
+        </p>
+        <button class="welcome-cta" onclick="startQuestions()">Comenzar Diagnóstico</button>
+    </div>
+
+    <!-- QUESTION SCREEN -->
+    <div class="screen question-screen" id="questionScreen">
+        <div class="progress-header">
+            <!-- GLOBAL PROGRESS BAR -->
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+
+            <div class="progress-stats">
+                <span class="questions-counter"><span id="currentQuestion">0</span>/100 preguntas</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+                <span class="value-counter" id="valueCounter">Analizando variables...</span>
+            </div>
+
+            <!-- MILESTONE BLOCKS (5 x 20 preguntas) -->
+            <div class="progress-icons">
+                <div class="milestone-block" id="block0" title="Bloque 1: Cimientos (1-20)">
+                    <div class="block-emoji">🏗️</div>
+                    <div class="block-label">1-20</div>
+                </div>
+                <div class="milestone-block" id="block1" title="Bloque 2: Hábitos (21-40)">
+                    <div class="block-emoji">⚙️</div>
+                    <div class="block-label">21-40</div>
+                </div>
+                <div class="milestone-block" id="block2" title="Bloque 3: Mentalidad (41-60)">
+                    <div class="block-emoji">🧠</div>
+                    <div class="block-label">41-60</div>
+                </div>
+                <div class="milestone-block" id="block3" title="Bloque 4: Estrategia (61-80)">
+                    <div class="block-emoji">🎯</div>
+                    <div class="block-label">61-80</div>
+                </div>
+                <div class="milestone-block" id="block4" title="Bloque 5: Maestría (81-100)">
+                    <div class="block-emoji">👑</div>
+                    <div class="block-label">81-100</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="capa-badge" id="capaBadge"></div>
+        <div class="question-card">
+            <div class="question-text" id="questionText"></div>
+            <div class="answers-container" id="answersContainer"></div>
+            <div class="revelation" id="revelation"></div>
+            <div class="microcopy" id="microcopy"></div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-btn" id="prevBtn" onclick="previousQuestion()">← Anterior</button>
+            <button class="nav-btn" id="nextBtn" onclick="nextQuestion()">Siguiente →</button>
+        </div>
+    </div>
+
+    <!-- PROCESSING SCREEN -->
+    <div class="screen processing-screen" id="processingScreen">
+        <div class="spinner"></div>
+        <h2 class="processing-title">Procesando tu diagnóstico...</h2>
+        <div class="processing-message" id="processingMessage"></div>
+    </div>
+
+    <!-- PAYMENT SCREEN -->
+    <div class="screen unboxing-screen" id="paymentScreen">
+        <div class="book-animation">💳</div>
+        <h2 class="unboxing-title">Tu Informe Premium Está Listo</h2>
+        <p class="unboxing-subtitle">
+            Acceso completo a tu análisis personalizado + recomendaciones accionables + plan de optimización.
+            <br><br>
+            <span style="color: var(--accent-gold); font-weight: 600;">Un único pago. Para siempre.</span>
+        </p>
+        <button class="download-btn" id="stripeCheckoutBtn" onclick="redirectToPayment()">🔐 Pagar €29 → Descargar Informe</button>
+        <p style="margin-top: 20px; font-size: 12px; color: var(--text-muted);">
+            Pago seguro con Stripe. Recibirás el PDF en segundos.
+        </p>
+    </div>
+
+    <!-- UNBOXING SCREEN (Post-pago) -->
+    <div class="screen unboxing-screen" id="unboxingScreen">
+        <div class="book-animation">📊</div>
+        <h2 class="unboxing-title">✓ Pago Confirmado</h2>
+        <p class="unboxing-subtitle">
+            Tu informe personalizado está listo para descargar.
+            Acceso permanente. Sin límites.
+        </p>
+        <button class="download-btn" onclick="downloadReport()">📥 Descargar PDF (26 páginas)</button>
+        <p style="margin-top: 20px; font-size: 12px; color: var(--text-muted);">
+            Si no se descargó automáticamente, haz clic arriba.
+        </p>
+    </div>
+</div>
+
+<button class="panic-button" id="panicBtn" onclick="togglePanic()">💙</button>
+<div class="panic-popup" id="panicPopup">
+    <button class="panic-popup-close" onclick="closePanic()">✕</button>
+    <p><strong>Oye, respira.</strong></p>
+    <p style="margin-top: 10px; color: var(--text-muted);">
+        Este test es para entender tu situación, no para juzgarte. No hay respuestas correctas.
+        Tómate el tiempo que necesites.
+    </p>
+</div>
+
+<button class="immersive-toggle" id="immersiveToggle" onclick="toggleImmersive()">🌙 Modo Inmersivo</button>
+
+<script>
+    const BASE_URL = 'http://localhost:8000';
+    let questions = [];
+    let currentIndex = 0;
+    let answers = {};
+    let diagnosticResult = null;
+    let lastActivityTime = Date.now();
+    const PANIC_INACTIVITY_MS = 90000;
+    // STRIPE_PAYMENT_LINK: Ir a stripe.com/dashboard > Products > Payment Links
+    // Crear nuevo link con producto "PDF Diagnóstico Personalizado" - Precio: €29
+    // En "After payment" > "Redirect customers to your website" > Poner: http://localhost:3000/gracias-diagnostico?session_id={CHECKOUT_SESSION_ID}
+    // Copiar el enlace generado y pegarlo aquí:
+    const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_bJe6oGcnv0vi5wab4vawo00';
+    const PROCESSING_MESSAGES = [
+        'Cruzando perfil psicológico...',
+        'Analizando patrones de gasto...',
+        'Calculando percentiles de ahorro...',
+        'Identificando alertas críticas...',
+        'Generando recomendaciones personalizadas...',
+        'Diseñando hoja de ruta...',
+        'Compilando informe en PDF...'
+    ];
+
+    async function loadQuestions() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/schema`);
+            const data = await res.json();
+            questions = data.questions || [];
+            console.log(`Cargadas ${questions.length} preguntas`);
+        } catch (err) {
+            console.error('Error cargando preguntas:', err);
+            alert('No se pudo conectar. Verifica que el servidor esté en localhost:8000');
+        }
+    }
+
+    function startQuestions() {
+        if (questions.length === 0) {
+            alert('Las preguntas aún se están cargando...');
+            return;
+        }
+        showScreen('questionScreen');
+        displayQuestion();
+        startPanicMonitor();
+    }
+
+    function displayQuestion() {
+        if (currentIndex >= questions.length) {
+            showProcessing();
+            return;
+        }
+
+        const q = questions[currentIndex];
+        document.getElementById('questionText').textContent = q.pregunta;
+        document.getElementById('capaBadge').textContent = q.capa_nombre || 'Capa';
+
+        const container = document.getElementById('answersContainer');
+        container.innerHTML = '';
+        q.respuestas.forEach((resp, idx) => {
+            const btn = document.createElement('div');
+            btn.className = 'answer-option';
+            if (answers[q.id] === idx) btn.classList.add('selected');
+            btn.textContent = resp;
+            btn.onclick = () => selectAnswer(q.id, idx, resp, q);
+            container.appendChild(btn);
+        });
+
+        document.getElementById('prevBtn').disabled = currentIndex === 0;
+        document.getElementById('nextBtn').disabled = !answers[q.id];
+
+        updateProgressMilestones();
+        updateValueCounter();
+        document.getElementById('revelation').innerHTML = '';
+        document.getElementById('microcopy').innerHTML = '';
+    }
+
+    function selectAnswer(qId, idx, text, q) {
+        answers[qId] = idx;
+        document.querySelectorAll('.answer-option').forEach(opt => opt.classList.remove('selected'));
+        event.target.classList.add('selected');
+
+        const microcopy = generateMicrocopy(q, text);
+        if (microcopy) {
+            document.getElementById('microcopy').innerHTML = `💡 ${microcopy}`;
+        }
+
+        const revelation = generateRevelation(q.capa);
+        if (revelation) {
+            document.getElementById('revelation').innerHTML = `<div class="revelation-text">${revelation}</div>`;
+        }
+
+        document.getElementById('nextBtn').disabled = false;
+        lastActivityTime = Date.now();
+    }
+
+    function generateMicrocopy(q, selectedText) {
+        const responses = {
+            'burnout': {
+                'No, disfruto mi trabajo y tengo control': '¡Excelente! La satisfacción es clave para la riqueza real.',
+                'A veces siento presión': 'Normal, pero es señal de revisar balance vida-trabajo.',
+                'Frecuentemente': 'Ojo aquí. Tu salud está en riesgo.',
+                'Siempre, es una prisión': 'Esto requiere atención urgente. Tú mereces mejor.'
+            }
+        };
+
+        return responses[q.capa]?.[selectedText] || null;
+    }
+
+    function generateRevelation(capa) {
+        const revelations = {
+            'burnout': '📌 El estrés financiero crónico reduce esperanza de vida en 2-3 años. Actuar ahora es inversión en ti.',
+            'numero_fi': '📌 El 90% de millonarios siguieron una estrategia clara. Lo tuyo depende de números, no suerte.',
+            'deuda': '📌 Cada 1% de reducción de deuda es 1% más de libertad. Empezar es lo difícil.'
+        };
+
+        return revelations[capa] || null;
+    }
+
+    function previousQuestion() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            displayQuestion();
+        }
+    }
+
+    function nextQuestion() {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            displayQuestion();
+        } else {
+            showProcessing();
+        }
+    }
+
+    function updateProgressMilestones() {
+        const progress = (currentIndex / questions.length) * 100;
+        const progressPercentage = Math.round(progress);
+
+        // Update progress bar
+        const barFill = document.getElementById('progressBarFill');
+        barFill.style.width = progress + '%';
+
+        // Update percentage counter
+        document.getElementById('progressPercentage').textContent = progressPercentage + '%';
+        document.getElementById('currentQuestion').textContent = currentIndex;
+
+        // Update milestone blocks
+        for (let i = 0; i < 5; i++) {
+            const blockStart = i * 20;
+            const blockEnd = (i + 1) * 20;
+            const blockEl = document.getElementById(`block${i}`);
+
+            if (currentIndex >= blockEnd) {
+                // Block completed
+                blockEl.classList.remove('active');
+                blockEl.classList.add('completed');
+
+                // Trigger celebration only once per block (on first completion)
+                if (!blockEl.dataset.celebrated && currentIndex === blockEnd) {
+                    triggerCelebration(i);
+                    blockEl.dataset.celebrated = 'true';
+                }
+            } else if (currentIndex >= blockStart && currentIndex < blockEnd) {
+                // Block active
+                blockEl.classList.add('active');
+                blockEl.classList.remove('completed');
+            } else {
+                // Block not yet reached
+                blockEl.classList.remove('active', 'completed');
+            }
+        }
+    }
+
+    function updateValueCounter() {
+        const pages = Math.ceil((Object.keys(answers).length / questions.length) * 26);
+        document.getElementById('valueCounter').textContent =
+            `Tu análisis ya tiene ${pages} páginas generadas`;
+    }
+
+    function triggerCelebration(blockIndex) {
+        const emojis = ['🎉', '⭐', '🔥', '💪', '👑'];
+        const messages = [
+            '¡Cimientos listos!',
+            '¡Hábitos mapeados!',
+            '¡Mentalidad clara!',
+            '¡Estrategia definida!',
+            '¡Eres un maestro!'
+        ];
+
+        // Create celebration emoji
+        const celebration = document.createElement('div');
+        celebration.className = 'celebration';
+        celebration.textContent = emojis[blockIndex];
+        document.body.appendChild(celebration);
+
+        setTimeout(() => celebration.remove(), 1200);
+
+        // Create confetti effect
+        for (let i = 0; i < 8; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.textContent = ['✨', '🌟', '💫', '⚡'][Math.floor(Math.random() * 4)];
+            confetti.style.left = (Math.random() * 100) + 'vw';
+            confetti.style.top = '50vh';
+            confetti.style.animation = `confettiFall ${1 + Math.random() * 0.5}s ease-in forwards`;
+            confetti.style.fontSize = (16 + Math.random() * 12) + 'px';
+            confetti.style.opacity = Math.random();
+            document.body.appendChild(confetti);
+
+            setTimeout(() => confetti.remove(), 1500);
+        }
+
+        // Show toast message
+        showToastMessage(messages[blockIndex]);
+    }
+
+    function showToastMessage(message) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-gold);
+            color: var(--primary);
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.4s ease;
+            box-shadow: 0 10px 30px rgba(255, 184, 28, 0.3);
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.4s ease';
+            setTimeout(() => toast.remove(), 400);
+        }, 2000);
+    }
+
+    // Add slide animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    function togglePanic() {
+        const popup = document.getElementById('panicPopup');
+        popup.classList.toggle('active');
+        lastActivityTime = Date.now();
+    }
+
+    function closePanic() {
+        document.getElementById('panicPopup').classList.remove('active');
+    }
+
+    function startPanicMonitor() {
+        document.addEventListener('click', () => { lastActivityTime = Date.now(); });
+        document.addEventListener('keypress', () => { lastActivityTime = Date.now(); });
+
+        setInterval(() => {
+            const inactive = Date.now() - lastActivityTime;
+            if (inactive > PANIC_INACTIVITY_MS) {
+                document.getElementById('panicPopup').classList.add('active');
+            }
+        }, 10000);
+    }
+
+    function toggleImmersive() {
+        document.body.classList.toggle('immersive-mode');
+        const btn = document.getElementById('immersiveToggle');
+        btn.textContent = document.body.classList.contains('immersive-mode') ? '☀️ Modo Normal' : '🌙 Modo Inmersivo';
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function showProcessing() {
+        showScreen('processingScreen');
+        const messages = [...PROCESSING_MESSAGES];
+        let idx = 0;
+
+        const updateMessage = () => {
+            if (idx < messages.length) {
+                document.getElementById('processingMessage').textContent = messages[idx];
+                idx++;
+                setTimeout(updateMessage, 2000);
+            } else {
+                submitDiagnostic();
+            }
+        };
+        updateMessage();
+    }
+
+    async function submitDiagnostic() {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 18000));
+
+            const res = await fetch(`${BASE_URL}/api/v1/diagnose`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers })
+            });
+
+            if (!res.ok) throw new Error('Error en diagnóstico');
+
+            diagnosticResult = await res.json();
+            showScreen('paymentScreen');
+        } catch (err) {
+            console.error('Error:', err);
+            alert('Error: ' + err.message);
+        }
+    }
+
+    function redirectToPayment() {
+        // Stripe Payment Link con session_id codificado
+        const sessionId = diagnosticResult?.session_id || 'unknown';
+        const redirectUrl = `${window.location.origin}/gracias-diagnostico?session_id=${encodeURIComponent(sessionId)}`;
+        const paymentLink = `${STRIPE_PAYMENT_LINK}?client_reference_id=${encodeURIComponent(sessionId)}&success_url=${encodeURIComponent(redirectUrl)}`;
+        window.location.href = paymentLink;
+    }
+
+    function downloadReport() {
+        if (!diagnosticResult || !diagnosticResult.download_url) {
+            alert('No hay reporte disponible');
+            return;
+        }
+
+        const link = document.createElement('a');
+        link.href = `${BASE_URL}${diagnosticResult.download_url}`;
+        link.download = 'diagnostico_financiero.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    window.addEventListener('load', loadQuestions);
+</script>
+
+</body>
+</html>
