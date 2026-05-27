@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Diagnóstico Financiero - Standalone (sin Docker)
+FastAPI backend + React frontend (SimpleHTTPServer)
 """
 
 import sys
@@ -12,107 +13,96 @@ import logging
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-# Configurar logging
+# Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Directorio de la app
+# App dir
 app_dir = Path(__file__).parent.absolute()
 os.chdir(app_dir)
 
-# Crear carpeta de outputs
+# Create reports dir
 output_dir = app_dir / "reports"
 output_dir.mkdir(exist_ok=True)
 
-# Importaciones
+# Import FastAPI
 try:
-    from fastapi import FastAPI, Request, HTTPException
-    from fastapi.responses import FileResponse
-    from fastapi.middleware.cors import CORSMiddleware
-    import uvicorn
+        from fastapi import FastAPI, Request
+        from fastapi.middleware.cors import CORSMiddleware
+        import uvicorn
 except ImportError as e:
-    logger.error(f"Falta: {e}")
-    logger.info("pip install fastapi uvicorn pydantic reportlab matplotlib numpy --break-system-packages")
-    sys.exit(1)
+        logger.error(f"Missing: {e}")
+        sys.exit(1)
 
+# Import diagnostic modules
 try:
-    from diagnostic_engine_friction import DiagnosticEngineFriction
-    from diagnostic_report_generator import DiagnosticReportGenerator
+        from diagnostic_engine import DiagnosticEngine
+        from diagnostic_report_generator import DiagnosticReportGenerator
 except ImportError as e:
-    logger.error(f"Modulos: {e}")
-    sys.exit(1)
+        logger.error(f"Modules error: {e}")
+        sys.exit(1)
 
 # Config
 PORT_API = 8000
 PORT_FRONTEND = 3000
 
-# FastAPI
+# FastAPI app
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+)
 
-# Schema
-schema_path = app_dir / "data-schema-100-friction.json"
+# Load schema
+schema_path = app_dir / "data-schema-500.json"
 try:
-    with open(schema_path, "r", encoding="utf-8") as f:
-        schema = json.load(f)
-    num_bloques = len(schema.get('bloques', {}))
-    total_preguntas = schema.get('metadata', {}).get('total_preguntas', 0)
-    version = schema.get('metadata', {}).get('version', 'unknown')
-    logger.info(f"OK Schema Premium {version}: {num_bloques} bloques, {total_preguntas} preguntas friction-based")
+        with open(schema_path, "r", encoding="utf-8") as f:
+                    schema = json.load(f)
+                total_preguntas = schema.get('metadata', {}).get('total_preguntas', 500)
+    logger.info(f"Schema loaded: {total_preguntas} questions")
 except FileNotFoundError:
-    logger.error(f"NO EXISTE: {schema_path}")
+    logger.error(f"Schema not found: {schema_path}")
     sys.exit(1)
 
-# Motor
+# Create engine
 try:
-    diagnostic_engine = DiagnosticEngineFriction(str(schema_path))
+        diagnostic_engine = DiagnosticEngine(str(schema_path))
     report_generator = DiagnosticReportGenerator(str(output_dir))
-    logger.info("OK Motor listo")
+    logger.info("Diagnostic engine initialized")
 except Exception as e:
-    logger.error(f"ERROR: {e}")
+    logger.error(f"Engine error: {e}")
     sys.exit(1)
+
+# API Endpoints
+
+@app.get("/health")
+def health():
+        return {"status": "ok"}
 
 @app.get("/api/v1/schema")
 def get_schema():
-    """Transforma la estructura de bloques friction-based a un array de preguntas plano"""
+        """Return all questions in flat array format"""
     questions = []
     question_id = 1
 
-    bloques_data = schema.get('bloques', {})
-    for bloque_key, bloque_content in bloques_data.items():
-        bloque_titulo = bloque_content.get('titulo', bloque_key)
-        preguntas = bloque_content.get('preguntas', [])
+    capas = schema.get('capas', {})
+    for capa_name, capa_data in capas.items():
+                preguntas = capa_data.get('preguntas', [])
 
         for pregunta_data in preguntas:
-            # Transformar respuestas a formato simple (texto) o mantener estructura con scores
-            respuestas_list = []
-            pesos_dict = {}
-
-            respuestas_raw = pregunta_data.get('respuestas', [])
-            for idx, r in enumerate(respuestas_raw):
-                if isinstance(r, dict):
-                    texto = r.get('texto', '')
-                    score = r.get('score', 0)
-                    respuestas_list.append(texto)
-                    pesos_dict[str(idx)] = score
-                else:
-                    respuestas_list.append(r)
-                    pesos_dict[str(idx)] = 0
+                        # Parse respuestas and pesos
+                        respuestas_list = pregunta_data.get('respuestas', [])
+                        pesos = pregunta_data.get('pesos', {})
 
             questions.append({
-                "id": question_id,
-                "id_original": pregunta_data.get('id', ''),
-                "bloque": bloque_key,
-                "bloque_titulo": bloque_titulo,
-                "pregunta": pregunta_data.get('pregunta', ''),
-                "tipo": pregunta_data.get('tipo', 'multiple_choice'),
-                "respuestas": respuestas_list,
-                "pesos": pesos_dict,
-                "dimension": pregunta_data.get('dimension', ''),
-                "friccion": pregunta_data.get('friccion', ''),
-                "rango_min": pregunta_data.get('rango_min'),
-                "rango_max": pregunta_data.get('rango_max'),
-                "etiquetas": pregunta_data.get('etiquetas', [])
+                                "id": question_id,
+                                "capa": capa_name,
+                                "pregunta": pregunta_data.get('pregunta', ''),
+                                "respuestas": respuestas_list,
+                                "pesos": pesos
             })
             question_id += 1
 
@@ -120,111 +110,49 @@ def get_schema():
 
 @app.post("/api/v1/diagnose")
 async def diagnose(request: Request):
+        """Process answers and generate diagnostic result"""
     try:
-        data = await request.json()
-        answers = data.get("answers", {})
-        user_id = data.get("user_id", f"user_{int(time.time())}")
+                data = await request.json()
+                answers = data.get("answers", {})
 
-        # Ejecutar diagnostico
-        result = diagnostic_engine.diagnose(answers, user_id=user_id)
+        # Run diagnostic
+                result = diagnostic_engine.diagnose(answers)
 
-        # Generar reporte PDF
-        report_filename = f"{user_id}_diagnostic.pdf"
-        report_path = output_dir / report_filename
-        generator = DiagnosticReportGenerator(str(report_path))
-        pdf_path = generator.generate_report(result)
+        # Generate PDF report
+                user_id = f"user_{int(time.time())}"
+                report_filename = f"{user_id}_diagnostic.pdf"
+                pdf_path = report_generator.generate_report(result, report_filename)
 
-        # Retornar con URL de descarga y session_id para Stripe
-        report_id = report_filename.replace('.pdf', '')
-        return {
-            "success": True,
-            "results": result if isinstance(result, dict) else result.__dict__,
-            "report_id": report_id,
-            "session_id": user_id,
-            "download_url": f"/api/v1/reports/{report_id}"
-        }
-    except Exception as e:
-        logger.error(f"Error en diagnose: {e}")
+        # Return result
+                result_dict = result if isinstance(result, dict) else result.__dict__
+                return {
+                    "success": True,
+                    "results": result_dict,
+                    "report_path": str(pdf_path)
+                }
+except Exception as e:
+        logger.error(f"Diagnose error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"success": False, "error": str(e)}
 
-@app.get("/api/v1/verify-payment/{session_id}")
-async def verify_payment(session_id: str):
-    """Verifica que un pago/session es valido y retorna el report_id"""
-    try:
-        # El session_id es el user_id, y el reporte existe con nombre {user_id}_diagnostic.pdf
-        report_filename = f"{session_id}_diagnostic.pdf"
-        report_path = output_dir / report_filename
+# Frontend server (separate thread)
+class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
+        def log_message(self, format, *args):
+                    pass  # Suppress logging
 
-        if not report_path.exists():
-            raise HTTPException(status_code=404, detail="Pago no confirmado o reporte no encontrado")
-
-        return {
-            "valid": True,
-            "session_id": session_id,
-            "report_id": session_id
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error verificando pago: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/v1/reports/{report_id}")
-async def get_report(report_id: str):
-    """Descarga PDF del reporte por ID"""
-    try:
-        # Buscar archivo con extension .pdf
-        report_path = output_dir / f"{report_id}.pdf"
-
-        if not report_path.exists():
-            raise HTTPException(status_code=404, detail="Reporte no encontrado")
-
-        return FileResponse(
-            report_path,
-            media_type="application/pdf",
-            filename=f"diagnostico_{report_id}.pdf"
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error al descargar reporte: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-# Frontend Server
-class FrontendHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
-def start_frontend():
-    handler = lambda *args, **kwargs: FrontendHandler(*args, directory=str(app_dir), **kwargs)
-    server = HTTPServer(("0.0.0.0", PORT_FRONTEND), handler)
-    logger.info(f"OK Frontend: http://localhost:{PORT_FRONTEND}")
+def run_frontend():
+        os.chdir(app_dir)
+    server = HTTPServer(("0.0.0.0", PORT_FRONTEND), QuietHTTPRequestHandler)
+    logger.info(f"Frontend running on port {PORT_FRONTEND}")
     server.serve_forever()
 
-# Main
-def main():
-    logger.info("")
-    logger.info("========= DIAGNOSTICO FINANCIERO =========")
-    logger.info("")
-
-    frontend_thread = threading.Thread(target=start_frontend, daemon=True)
-    frontend_thread.start()
-    time.sleep(0.5)
-
-    logger.info(f"OK API: http://localhost:{PORT_API}")
-    logger.info("")
-    logger.info(f"ABRE: http://localhost:{PORT_FRONTEND}")
-    logger.info("")
-
-    try:
-        uvicorn.run(app, host="0.0.0.0", port=PORT_API, log_level="info")
-    except KeyboardInterrupt:
-        logger.info("OK Cerrado")
-        sys.exit(0)
-
 if __name__ == "__main__":
-    main()
+        # Start frontend in background thread
+        frontend_thread = threading.Thread(target=run_frontend, daemon=True)
+    frontend_thread.start()
+    time.sleep(1)
+
+    # Start API server
+    logger.info(f"Starting API on port {PORT_API}")
+    uvicorn.run(app, host="0.0.0.0", port=PORT_API)
