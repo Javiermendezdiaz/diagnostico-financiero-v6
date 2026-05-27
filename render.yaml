@@ -1,0 +1,6 @@
+services:
+  - type: web
+      name: diagnostico-financiero-v6
+          runtime: python311
+              buildCommand: "./build.sh"
+                  startCommand: "python app_standalone.py"
